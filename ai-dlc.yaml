@@ -1,0 +1,112 @@
+# 서비스 연결 데이터다. 사용자 요청별 작업 범위와 결정 권한은 AGENTS.md를 따른다.
+schema_version: 2
+active_service: askteacher
+
+orchestrator:
+  repository: marcel615/Ask-Teacher-specs
+  default_branch: main
+
+services:
+  askteacher:
+    repositories:
+      common:
+        enabled: true
+        repository: marcel615/Ask-Teacher-specs
+        default_branch: main
+      backend:
+        enabled: true
+        repository: marcel615/Ask-Teacher
+        default_branch: develop
+      frontend:
+        enabled: true
+        repository: marcel615/Ask-Teacher-react
+        default_branch: develop
+        connection_status: verified
+
+    backlog:
+      draft_skill: feature-discovery
+      refinement_skill: cross-project-backlog-refinement
+      parent_repository_role: common
+      implementation_repository_roles:
+        - backend
+        - frontend
+      relationship: github-sub-issue
+
+    project:
+      owner: marcel615
+      number: 1
+      id: PVT_kwHOA3_2Ds4BqsK-
+      url: https://github.com/users/marcel615/projects/1
+      fields:
+        status: Status
+        approval: Approval
+        proposer: Proposer
+        candidate_id: Candidate ID
+        priority: Priority
+        target_date: Target date
+        parent_issue: Parent issue
+        sub_issues_progress: Sub-issues progress
+      statuses:
+        backlog: Backlog
+        ready: Ready
+        in_progress: In Progress
+        in_review: In Review
+        done: Done
+      approval_values:
+        pending: Pending
+        approved: Approved
+        hold: Hold
+        rejected: Rejected
+      proposer_values:
+        user: User
+        ai: AI
+      priority_values:
+        high: High
+        medium: Medium
+        low: Low
+
+    labels:
+      decision: 'needs: decision'
+      priority:
+        high: 'priority: high'
+        medium: 'priority: medium'
+        low: 'priority: low'
+
+    requirements:
+      repository_role: common
+      path: docs/requirements.md
+      format: markdown
+      reference_commit: 79fadfa8c687681186f0c0e1ef0e6e5e1dded33c
+
+    contracts:
+      api:
+        repository_role: common
+        path: docs/api-spec.md
+        format: markdown
+        reference_commit: 79fadfa8c687681186f0c0e1ef0e6e5e1dded33c
+      authentication:
+        repository_role: common
+        path: docs/api-spec.md
+        section: 인증
+        format: markdown
+        reference_commit: 79fadfa8c687681186f0c0e1ef0e6e5e1dded33c
+      erd:
+        repository_role: common
+        path: docs/erd.md
+        format: markdown
+        reference_commit: 79fadfa8c687681186f0c0e1ef0e6e5e1dded33c
+      ui:
+        repository_role: common
+        path: docs/ui-spec.md
+        format: markdown
+        reference_commit: 3b30bbd23cad618a6a16b022dbd03c7f2d1fc69f
+
+    review:
+      state_file: integration-review-state.json
+
+# requirements와 contracts는 역할의 default_branch에서 공식 원본을 조회한다.
+# reference_commit은 해당 원본 저장소에서 확인한 조사 기준이며 버전 고정이 아니다.
+# 실행 시 현재 브랜치 SHA를 확인하고 원본 URL·SHA를 기록한다. Backend 사본으로 대체하지 않는다.
+# 저장소의 default_branch 값은 파일·커밋 존재나 초기화 완료를 보장하지 않는다.
+# 필드 이름·ID·선택지와 필요한 라벨은 사용 전 실제 GitHub 값과 대조한다.
+# 토큰·인증 정보는 기록하지 않는다.
