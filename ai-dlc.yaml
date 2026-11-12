@@ -1,4 +1,4 @@
-# 서비스 연결 데이터다. 사용자 요청별 작업 범위와 결정 권한은 AGENTS.md를 따른다.
+# 서비스 연결 데이터다. 작업 범위와 결정 권한은 공통 ai-dlc-orchestrator의 AGENTS.md를 따른다.
 schema_version: 2
 active_service: askteacher
 
