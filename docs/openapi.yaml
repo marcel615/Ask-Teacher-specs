@@ -1,0 +1,1126 @@
+openapi: 3.0.3
+info:
+  title: Ask-Teacher API
+  version: '1.0'
+  description: >-
+    기존 api-spec.md의 내용을 전환한 제안이다. 기존 원본이 공식 기준이며 인증 정책은 auth-policy.md를 참고한다. 예시에서 유추한 응답 스키마는 필드 필수
+    여부를 확정하지 않는다.
+paths:
+  /api/auth/signup:
+    post:
+      summary: 회원가입
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - nickname
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: 중복 불가
+                password:
+                  type: string
+                  minLength: 8
+                nickname:
+                  type: string
+                  minLength: 2
+                  maxLength: 20
+                  description: 중복 불가
+            example:
+              email: user@example.com
+              password: password123
+              nickname: springUser
+      responses:
+        '201':
+          description: 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: integer
+                  email:
+                    type: string
+                  nickname:
+                    type: string
+              example:
+                userId: 1
+                email: user@example.com
+                nickname: springUser
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: 이메일 또는 닉네임 중복
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/auth/login:
+    post:
+      summary: 로그인
+      description: CSRF 쿠키와 X-XSRF-TOKEN 헤더를 보낸다. 성공 시 Refresh 쿠키를 발급한다.
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+            example:
+              email: user@example.com
+              password: password123
+      responses:
+        '200':
+          $ref: '#/components/responses/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: 로그인 정보 불일치
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: CSRF 검증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Redis 장애
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/auth/csrf:
+    get:
+      summary: CSRF 토큰 발급
+      description: 응답 token과 headerName 및 HttpOnly CSRF 쿠키를 발급한다.
+      responses:
+        '200':
+          description: CSRF 토큰 발급 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  headerName:
+                    type: string
+          headers:
+            Set-Cookie:
+              description: 'HttpOnly CSRF 쿠키: 보안 환경 __Host-XSRF-TOKEN, 비보안 개발 환경 XSRF-TOKEN.'
+              schema:
+                type: string
+  /api/auth/refresh:
+    post:
+      summary: 토큰 재발급
+      description: >-
+        본문 없이 Refresh 쿠키와 CSRF 쿠키 및 헤더를 보낸다. 성공 시 로그인과 같은 JSON과 회전된 쿠키를 반환한다.
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      security:
+        - refreshCookie: []
+      responses:
+        '401':
+          description: 만료·위조·폐기·재사용
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: CSRF 검증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Redis 장애
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '200':
+          $ref: '#/components/responses/TokenResponse'
+  /api/auth/logout:
+    post:
+      summary: 로그아웃
+      description: 유효한 Access Token 또는 Refresh 쿠키로 현재 세션을 식별한다. 인증 정보는 선택이며 CSRF 쿠키와 헤더를 보낸다. Refresh 쿠키를 지운다.
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      security:
+        - {}
+        - bearerAuth: []
+        - refreshCookie: []
+      responses:
+        '204':
+          description: 로그아웃 성공 또는 이미 만료·로그아웃 상태
+          headers:
+            Set-Cookie:
+              description: refreshToken 쿠키를 지운다.
+              schema:
+                type: string
+        '403':
+          description: CSRF 검증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Redis 장애
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/categories:
+    get:
+      summary: 카테고리 목록 조회
+      description: "구현됨.\n\n### Request\r\n\r\n`GET /api/categories`\r\n\r\n### Response\r\n\r\n```json\r\n[\r\n  {\r\n    \"id\": 1,\r\n    \"name\": \"Spring\"\r\n  }\r\n]\r\n```\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 성공 | 200 OK |\r\n\r\n---"
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+              example:
+                - id: 1
+                  name: Spring
+  /api/posts:
+    post:
+      summary: 게시글 작성
+      description: "구현됨.\n\n### Request\r\n\r\n`POST /api/posts`\r\n\r\n```http\r\nAuthorization: Bearer {accessToken}\r\nContent-Type: multipart/form-data\r\n```\r\n\r\n| Part | 타입 | 필수 | 설명 |\r\n|---|---|---|---|\r\n| categoryId | Long | 필수 | 카테고리 ID |\r\n| title | String | 필수 | 게시글 제목 |\r\n| content | String | 필수 | 게시글 내용 |\r\n| files | MultipartFile[] | 선택 | 첨부파일 목록 |\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| categoryId | 필수, 존재하는 카테고리 ID |\r\n| title | 필수, 100자 이하 |\r\n| content | 필수, 5000자 이하 |\r\n| files | 선택, 여러 파일 첨부 가능 |\r\n| files.contentType | `image/jpeg`, `image/png`, `image/webp`, `application/pdf`만 허용 |\r\n| files.size | 0보다 커야 하며 설정된 최대 크기 이하여야 함 |\r\n\r\n### Response\r\n\r\n```json\r\n{\r\n  \"postId\": 1,\r\n  \"title\": \"Spring Bean이 뭔가요?\",\r\n  \"newPost\": true,\r\n  \"createdAt\": \"2026-05-12T19:30:00\"\r\n}\r\n```\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 생성 성공 | 201 Created |\r\n| 인증 실패 | 401 Unauthorized |\r\n| Validation 실패 | 400 Bad Request |\r\n| 허용되지 않은 파일 형식 | 400 Bad Request |\r\n| 빈 파일 | 400 Bad Request |\r\n| 파일 크기 초과 | 400 Bad Request |\r\n| 사용자 없음 | 404 Not Found |\r\n| 카테고리 없음 | 404 Not Found |\r\n| 파일 저장 실패 | 500 Internal Server Error |\r\n\r\n첨부 저장이나 DB 트랜잭션이 롤백되면 이 요청에서 생성한 파일과 부분 파일을 정리한다. 기존 파일은 보존한다. 정리에 실패하거나 트랜잭션 결과를 알 수 없는 경우 파일이 남을 수 있다.\r\n\r\n---"
+      responses:
+        '201':
+          description: 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  postId:
+                    type: integer
+                  title:
+                    type: string
+                  newPost:
+                    type: boolean
+                  createdAt:
+                    type: string
+              example:
+                postId: 1
+                title: Spring Bean이 뭔가요?
+                newPost: true
+                createdAt: '2026-05-12T19:30:00'
+        '400':
+          description: Validation 실패; 허용되지 않은 파일 형식; 빈 파일; 파일 크기 초과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 사용자 없음; 카테고리 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 파일 저장 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - categoryId
+                - title
+                - content
+              properties:
+                categoryId:
+                  type: integer
+                  format: int64
+                  description: 존재하는 카테고리 ID
+                title:
+                  type: string
+                  maxLength: 100
+                content:
+                  type: string
+                  maxLength: 5000
+                files:
+                  type: array
+                  description: >-
+                    선택, 파일은 0보다 크고 설정된 최대 크기 이하. image/jpeg, image/png, image/webp, application/pdf만
+                    허용.
+                  items:
+                    type: string
+                    format: binary
+    get:
+      summary: 게시글 목록 조회
+      description: "구현됨.\n\n### Request\r\n\r\n`GET /api/posts`\r\n\r\n### Query Parameters\r\n\r\n| 이름 | 타입 | 필수 | 설명 |\r\n|---|---|---|---|\r\n| keyword | String | 선택 | 제목 또는 내용 검색어. 없거나 공백이면 검색 조건 없이 조회 |\r\n| categoryId | Long | 선택 | 카테고리 ID. 없으면 전체 카테고리 조회 |\r\n| page | int | 선택 | 페이지 번호. 0 이상. 기본값 0 |\r\n| size | int | 선택 | 페이지 크기. 1 이상. 기본값 10 |\r\n\r\n### Request Examples\r\n\r\n```http\r\nGET /api/posts?page=0&size=10\r\nGET /api/posts?keyword=검색어&page=0&size=10\r\nGET /api/posts?categoryId=1&page=0&size=10\r\nGET /api/posts?keyword=검색어&categoryId=1&page=0&size=10\r\n```\r\n\r\n### Response\r\n\r\n```json\r\n{\r\n  \"content\": [\r\n    {\r\n      \"postId\": 1,\r\n      \"title\": \"Spring Bean이 뭔가요?\",\r\n      \"writerNickname\": \"springUser\",\r\n      \"categoryName\": \"Spring\",\r\n      \"newPost\": true,\r\n      \"likeCount\": 3,\r\n      \"createdAt\": \"2026-05-12T19:30:00\"\r\n    }\r\n  ],\r\n  \"currentPage\": 0,\r\n  \"pageSize\": 10,\r\n  \"totalElements\": 1,\r\n  \"totalPages\": 1,\r\n  \"hasNext\": false,\r\n  \"hasPrevious\": false,\r\n  \"isFirst\": true,\r\n  \"isLast\": true\r\n}\r\n```\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 조회 성공 | 200 OK |\r\n| page가 0 미만 | 400 Bad Request |\r\n| size가 1 미만 | 400 Bad Request |\r\n| 존재하지 않는 categoryId | 404 Not Found |\r\n| 서버 조회 실패 | 500 Internal Server Error |\r\n\r\n### 비고\r\n\r\n- `keyword`가 없거나 공백이면 검색 조건 없이 조회한다.\r\n- `categoryId`가 없으면 전체 카테고리 게시글을 조회한다.\r\n- 삭제된 게시글은 목록에서 제외한다.\r\n- 게시글 목록은 `createdAt` 기준 내림차순으로 정렬해 최근에 생성된 게시글부터 반환한다.\r\n\r\n---"
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        postId:
+                          type: integer
+                        title:
+                          type: string
+                        writerNickname:
+                          type: string
+                        categoryName:
+                          type: string
+                        newPost:
+                          type: boolean
+                        likeCount:
+                          type: integer
+                        createdAt:
+                          type: string
+                  currentPage:
+                    type: integer
+                  pageSize:
+                    type: integer
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  hasNext:
+                    type: boolean
+                  hasPrevious:
+                    type: boolean
+                  isFirst:
+                    type: boolean
+                  isLast:
+                    type: boolean
+              example:
+                content:
+                  - postId: 1
+                    title: Spring Bean이 뭔가요?
+                    writerNickname: springUser
+                    categoryName: Spring
+                    newPost: true
+                    likeCount: 3
+                    createdAt: '2026-05-12T19:30:00'
+                currentPage: 0
+                pageSize: 10
+                totalElements: 1
+                totalPages: 1
+                hasNext: false
+                hasPrevious: false
+                isFirst: true
+                isLast: true
+        '400':
+          description: page가 0 미만; size가 1 미만
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 존재하지 않는 categoryId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 서버 조회 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: keyword
+          in: query
+          schema:
+            type: string
+          description: 제목 또는 내용 검색어. 없거나 공백이면 검색 조건 없음.
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: 없으면 전체 카테고리
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+  /api/posts/{postId}:
+    get:
+      summary: 게시글 상세 조회
+      description: "구현됨.\n\n### Request\r\n\r\n`GET /api/posts/{postId}`\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| postId | 필수, 존재하는 게시글 ID |\r\n\r\n### Response\r\n\r\n```json\r\n{\r\n  \"postId\": 1,\r\n  \"userName\": \"springUser\",\r\n  \"categoryName\": \"Spring\",\r\n  \"title\": \"Spring Bean은 무엇인가요?\",\r\n  \"content\": \"Spring Bean 개념이 궁금합니다.\",\r\n  \"likeCount\": 3,\r\n  \"likedByMe\": true,\r\n  \"createdAt\": \"2026-05-12T19:30:00\",\r\n  \"files\": [\r\n    {\r\n      \"storedFileName\": \"uuid-image.png\",\r\n      \"contentType\": \"image/png\",\r\n      \"fileUrl\": \"/files/uuid-image.png\"\r\n    }\r\n  ]\r\n}\r\n```\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 조회 성공 | 200 OK |\r\n| 게시글 없음 | 404 Not Found |\r\n\r\n---"
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  postId:
+                    type: integer
+                  userName:
+                    type: string
+                  categoryName:
+                    type: string
+                  title:
+                    type: string
+                  content:
+                    type: string
+                  likeCount:
+                    type: integer
+                  likedByMe:
+                    type: boolean
+                  createdAt:
+                    type: string
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        storedFileName:
+                          type: string
+                        contentType:
+                          type: string
+                        fileUrl:
+                          type: string
+              example:
+                postId: 1
+                userName: springUser
+                categoryName: Spring
+                title: Spring Bean은 무엇인가요?
+                content: Spring Bean 개념이 궁금합니다.
+                likeCount: 3
+                likedByMe: true
+                createdAt: '2026-05-12T19:30:00'
+                files:
+                  - storedFileName: uuid-image.png
+                    contentType: image/png
+                    fileUrl: /files/uuid-image.png
+        '404':
+          description: 게시글 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: 존재하는 게시글 ID
+          schema:
+            type: integer
+            format: int64
+    patch:
+      summary: 게시글 수정
+      description: "구현됨.\n\n### Request\r\n\r\n`PATCH /api/posts/{postId}`\r\n\r\n```http\r\nAuthorization: Bearer {accessToken}\r\nContent-Type: multipart/form-data\r\n```\r\n\r\n| Part | 타입 | 필수 | 설명 |\r\n|---|---|---|---|\r\n| categoryId | Long | 필수 | 카테고리 ID |\r\n| title | String | 필수 | 게시글 제목 |\r\n| content | String | 필수 | 게시글 내용 |\r\n| files | MultipartFile[] | 선택 | 첨부파일 목록 |\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| postId | 필수, 존재하는 게시글 ID |\r\n| categoryId | 필수, 존재하는 카테고리 ID |\r\n| title | 필수, 100자 이하 |\r\n| content | 필수, 5000자 이하 |\r\n| files | 선택, 여러 파일 첨부 가능 |\r\n| files.contentType | `image/jpeg`, `image/png`, `image/webp`, `application/pdf`만 허용 |\r\n| files.size | 0보다 커야 하며 설정된 최대 크기 이하여야 함 |\r\n\r\n### Response\r\n\r\n```json\r\n{\r\n  \"postId\": 1,\r\n  \"categoryId\": 1,\r\n  \"title\": \"수정 게시글 제목\",\r\n  \"content\": \"수정 게시글 내용\",\r\n  \"updatedAt\": \"2026-05-12T19:30:00\"\r\n}\r\n```\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 수정 성공 | 200 OK |\r\n| 인증 실패 | 401 Unauthorized |\r\n| Validation 실패 | 400 Bad Request |\r\n| 허용되지 않은 파일 형식 | 400 Bad Request |\r\n| 빈 파일 | 400 Bad Request |\r\n| 파일 크기 초과 | 400 Bad Request |\r\n| 작성자 불일치 | 403 Forbidden |\r\n| 게시글 없음 | 404 Not Found |\r\n| 카테고리 없음 | 404 Not Found |\r\n| 파일 저장 실패 | 500 Internal Server Error |\r\n\r\n첨부 저장이나 DB 트랜잭션이 롤백되면 이 요청에서 생성한 파일과 부분 파일을 정리한다. 기존 파일은 보존한다. 정리에 실패하거나 트랜잭션 결과를 알 수 없는 경우 파일이 남을 수 있다.\r\n\r\n### 비고\r\n\r\n- 작성자 검증은 Authorization 헤더의 Access Token 사용자 ID와 게시글 작성자 ID를 비교한다.\r\n- 삭제된 게시글은 존재하지 않는 게시글과 동일하게 404 Not Found로 처리하며 게시글과 첨부파일을 변경하지 않는다.\r\n- 게시글 수정 시 `newPost`, `deleted`, `createdAt`, `user`는 변경하지 않는다.\r\n\r\n---"
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  postId:
+                    type: integer
+                  categoryId:
+                    type: integer
+                  title:
+                    type: string
+                  content:
+                    type: string
+                  updatedAt:
+                    type: string
+              example:
+                postId: 1
+                categoryId: 1
+                title: 수정 게시글 제목
+                content: 수정 게시글 내용
+                updatedAt: '2026-05-12T19:30:00'
+        '400':
+          description: Validation 실패; 허용되지 않은 파일 형식; 빈 파일; 파일 크기 초과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 작성자 불일치
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 게시글 없음; 카테고리 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 파일 저장 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: 존재하고 삭제되지 않은 대상 ID. 상세 규칙은 본문 참고.
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - categoryId
+                - title
+                - content
+              properties:
+                categoryId:
+                  type: integer
+                  format: int64
+                  description: 존재하는 카테고리 ID
+                title:
+                  type: string
+                  maxLength: 100
+                content:
+                  type: string
+                  maxLength: 5000
+                files:
+                  type: array
+                  description: >-
+                    선택, 파일은 0보다 크고 설정된 최대 크기 이하. image/jpeg, image/png, image/webp, application/pdf만
+                    허용.
+                  items:
+                    type: string
+                    format: binary
+    delete:
+      summary: 게시글 삭제
+      description: "구현됨.\n\n### Request\r\n\r\n`DELETE /api/posts/{postId}`\r\n\r\n```http\r\nAuthorization: Bearer {accessToken}\r\n```\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| postId | 필수, 존재하는 게시글 ID, 삭제되지 않은 게시글 |\r\n\r\n### Response\r\n\r\n응답 본문 없음.\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 삭제 성공 | 204 No Content |\r\n| 인증 실패 | 401 Unauthorized |\r\n| 작성자 불일치 | 403 Forbidden |\r\n| 게시글 없음 | 404 Not Found |\r\n\r\n### 비고\r\n\r\n- DB row를 물리 삭제하지 않고 `Post.deleted = true`로 변경한다.\r\n- 이미 삭제된 게시글은 조회되지 않는 게시글로 보고 404 Not Found로 처리한다.\r\n- 삭제 시 `updatedAt`을 갱신한다.\r\n- 작성자 검증은 Authorization 헤더의 Access Token 사용자 ID와 게시글 작성자 ID를 비교한다.\r\n\r\n---"
+      responses:
+        '204':
+          description: 삭제 성공
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 작성자 불일치
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 게시글 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: 존재하고 삭제되지 않은 대상 ID. 상세 규칙은 본문 참고.
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+  /api/posts/{postId}/likes:
+    post:
+      summary: 게시글 좋아요 등록
+      description: "구현 예정.\n\n### Request\r\n\r\n`POST /api/posts/{postId}/likes`\r\n\r\n```http\r\nAuthorization: Bearer {accessToken}\r\n```\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| postId | 필수, 존재하는 게시글 ID, 삭제되지 않은 게시글 |\r\n\r\n### Response\r\n\r\n응답 본문 없음.\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 등록 성공 | 200 OK |\r\n| 인증 실패 | 401 Unauthorized |\r\n| 중복 좋아요 요청 | 400 Bad Request |\r\n| 게시글 없음 | 404 Not Found |\r\n\r\n---"
+      responses:
+        '200':
+          description: 등록 성공
+        '400':
+          description: 중복 좋아요 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 게시글 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: 존재하고 삭제되지 않은 대상 ID. 상세 규칙은 본문 참고.
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+    delete:
+      summary: 게시글 좋아요 취소
+      description: "구현 예정.\n\n### Request\r\n\r\n`DELETE /api/posts/{postId}/likes`\r\n\r\n```http\r\nAuthorization: Bearer {accessToken}\r\n```\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| postId | 필수, 존재하는 게시글 ID, 삭제되지 않은 게시글 |\r\n\r\n### Response\r\n\r\n응답 본문 없음.\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 취소 성공 | 204 No Content |\r\n| 인증 실패 | 401 Unauthorized |\r\n| 좋아요 취소 대상 없음 | 400 Bad Request |\r\n| 게시글 없음 | 404 Not Found |\r\n\r\n---"
+      responses:
+        '204':
+          description: 취소 성공
+        '400':
+          description: 좋아요 취소 대상 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 게시글 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: 존재하고 삭제되지 않은 대상 ID. 상세 규칙은 본문 참고.
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+  /api/posts/{postId}/comments:
+    post:
+      summary: 댓글 작성
+      description: "구현 예정.\n\n### Request\r\n\r\n`POST /api/posts/{postId}/comments`\r\n\r\n```http\r\nAuthorization: Bearer {accessToken}\r\nContent-Type: application/json\r\n```\r\n\r\n```json\r\n{\r\n  \"content\": \"댓글 내용\"\r\n}\r\n```\r\n\r\n댓글 작성자 ID는 request body로 받지 않고 Access Token의 사용자 ID를 사용한다.\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| postId | 필수, 존재하고 삭제되지 않은 게시글 ID |\r\n| content | 필수, 공백만 입력 불가, 최대 1000자 |\r\n\r\n`content`는 저장 전에 앞뒤 공백을 제거한다.\r\n\r\n### Response\r\n\r\n```json\r\n{\r\n  \"commentId\": 1,\r\n  \"postId\": 1,\r\n  \"writerId\": 1,\r\n  \"writerNickname\": \"springUser\",\r\n  \"content\": \"댓글 내용\",\r\n  \"likeCount\": 0,\r\n  \"likedByMe\": false,\r\n  \"createdAt\": \"2026-09-16T12:00:00\",\r\n  \"updatedAt\": \"2026-09-16T12:00:00\"\r\n}\r\n```\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 생성 성공 | 201 Created |\r\n| 인증 실패 | 401 Unauthorized |\r\n| Validation 실패 | 400 Bad Request |\r\n| 사용자 없음 | 404 Not Found |\r\n| 게시글 없음 | 404 Not Found |\r\n\r\n---"
+      responses:
+        '201':
+          description: 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commentId:
+                    type: integer
+                  postId:
+                    type: integer
+                  writerId:
+                    type: integer
+                  writerNickname:
+                    type: string
+                  content:
+                    type: string
+                  likeCount:
+                    type: integer
+                  likedByMe:
+                    type: boolean
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string
+              example:
+                commentId: 1
+                postId: 1
+                writerId: 1
+                writerNickname: springUser
+                content: 댓글 내용
+                likeCount: 0
+                likedByMe: false
+                createdAt: '2026-09-16T12:00:00'
+                updatedAt: '2026-09-16T12:00:00'
+        '400':
+          description: Validation 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 사용자 없음; 게시글 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: 존재하고 삭제되지 않은 대상 ID. 상세 규칙은 본문 참고.
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  maxLength: 1000
+                  description: 필수, 공백만 입력 불가. 저장 전 앞뒤 공백 제거.
+            example:
+              content: 댓글 내용
+    get:
+      summary: 댓글 목록 조회
+      description: "구현 예정.\n\n### Request\r\n\r\n`GET /api/posts/{postId}/comments`\r\n\r\n인증 없이 조회할 수 있다. 유효한 Access Token을 함께 보내면 현재 사용자의 댓글 좋아요 여부를 반환한다.\r\n\r\n### Query Parameters\r\n\r\n| 이름 | 타입 | 필수 | 설명 |\r\n|---|---|---|---|\r\n| page | int | 선택 | 페이지 번호. 0 이상. 기본값 0 |\r\n| size | int | 선택 | 페이지 크기. 1 이상 100 이하. 기본값 20 |\r\n| sort | String | 선택 | `latest` 또는 `likeCount`. 기본값 `latest` |\r\n\r\n### Request Examples\r\n\r\n```http\r\nGET /api/posts/1/comments?page=0&size=20&sort=latest\r\nGET /api/posts/1/comments?page=0&size=20&sort=likeCount\r\n```\r\n\r\n### Response\r\n\r\n```json\r\n{\r\n  \"comments\": [\r\n    {\r\n      \"commentId\": 1,\r\n      \"postId\": 1,\r\n      \"writerId\": 1,\r\n      \"writerNickname\": \"springUser\",\r\n      \"content\": \"댓글 내용\",\r\n      \"likeCount\": 3,\r\n      \"likedByMe\": false,\r\n      \"createdAt\": \"2026-09-16T12:00:00\",\r\n      \"updatedAt\": \"2026-09-16T12:00:00\"\r\n    }\r\n  ],\r\n  \"page\": 0,\r\n  \"size\": 20,\r\n  \"totalElements\": 1,\r\n  \"totalPages\": 1,\r\n  \"hasNext\": false,\r\n  \"sort\": \"latest\"\r\n}\r\n```\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 조회 성공 | 200 OK |\r\n| page가 0 미만 | 400 Bad Request |\r\n| size가 1 미만 또는 100 초과 | 400 Bad Request |\r\n| 허용되지 않은 sort | 400 Bad Request |\r\n| 게시글 없음 | 404 Not Found |\r\n\r\n### 비고\r\n\r\n- 삭제된 댓글은 조회하지 않는다.\r\n- 비로그인 사용자의 `likedByMe`는 `false`다.\r\n- 로그인 사용자는 실제 댓글 좋아요 여부를 `likedByMe`로 반환한다.\r\n- `latest`는 `createdAt DESC`, `commentId DESC` 순서로 정렬한다.\r\n- `likeCount`는 `likeCount DESC`, `createdAt DESC`, `commentId DESC` 순서로 정렬한다.\r\n- 댓글 좋아요 수는 `comment_likes` 데이터를 집계하여 반환한다.\r\n\r\n---"
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        commentId:
+                          type: integer
+                        postId:
+                          type: integer
+                        writerId:
+                          type: integer
+                        writerNickname:
+                          type: string
+                        content:
+                          type: string
+                        likeCount:
+                          type: integer
+                        likedByMe:
+                          type: boolean
+                        createdAt:
+                          type: string
+                        updatedAt:
+                          type: string
+                  page:
+                    type: integer
+                  size:
+                    type: integer
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  hasNext:
+                    type: boolean
+                  sort:
+                    type: string
+              example:
+                comments:
+                  - commentId: 1
+                    postId: 1
+                    writerId: 1
+                    writerNickname: springUser
+                    content: 댓글 내용
+                    likeCount: 3
+                    likedByMe: false
+                    createdAt: '2026-09-16T12:00:00'
+                    updatedAt: '2026-09-16T12:00:00'
+                page: 0
+                size: 20
+                totalElements: 1
+                totalPages: 1
+                hasNext: false
+                sort: latest
+        '400':
+          description: page가 0 미만; size가 1 미만 또는 100 초과; 허용되지 않은 sort
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 게시글 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: 존재하고 삭제되지 않은 대상 ID. 상세 규칙은 본문 참고.
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum:
+              - latest
+              - likeCount
+            default: latest
+      security:
+        - {}
+        - bearerAuth: []
+  /api/comments/{commentId}:
+    patch:
+      summary: 댓글 수정
+      description: "구현 예정.\n\n### Request\r\n\r\n`PATCH /api/comments/{commentId}`\r\n\r\n```http\r\nAuthorization: Bearer {accessToken}\r\nContent-Type: application/json\r\n```\r\n\r\n```json\r\n{\r\n  \"content\": \"수정한 댓글 내용\"\r\n}\r\n```\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| commentId | 필수, 존재하고 삭제되지 않은 댓글 ID |\r\n| content | 필수, 공백만 입력 불가, 최대 1000자 |\r\n\r\n`content`는 저장 전에 앞뒤 공백을 제거한다.\r\n\r\n### Response\r\n\r\n```json\r\n{\r\n  \"commentId\": 1,\r\n  \"postId\": 1,\r\n  \"writerId\": 1,\r\n  \"writerNickname\": \"springUser\",\r\n  \"content\": \"수정한 댓글 내용\",\r\n  \"likeCount\": 3,\r\n  \"likedByMe\": true,\r\n  \"createdAt\": \"2026-09-16T12:00:00\",\r\n  \"updatedAt\": \"2026-09-16T13:00:00\"\r\n}\r\n```\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 수정 성공 | 200 OK |\r\n| 인증 실패 | 401 Unauthorized |\r\n| Validation 실패 | 400 Bad Request |\r\n| 작성자 불일치 | 403 Forbidden |\r\n| 댓글 없음 | 404 Not Found |\r\n\r\n---"
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commentId:
+                    type: integer
+                  postId:
+                    type: integer
+                  writerId:
+                    type: integer
+                  writerNickname:
+                    type: string
+                  content:
+                    type: string
+                  likeCount:
+                    type: integer
+                  likedByMe:
+                    type: boolean
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string
+              example:
+                commentId: 1
+                postId: 1
+                writerId: 1
+                writerNickname: springUser
+                content: 수정한 댓글 내용
+                likeCount: 3
+                likedByMe: true
+                createdAt: '2026-09-16T12:00:00'
+                updatedAt: '2026-09-16T13:00:00'
+        '400':
+          description: Validation 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 작성자 불일치
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 댓글 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          description: 존재하고 삭제되지 않은 대상 ID. 상세 규칙은 본문 참고.
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  maxLength: 1000
+                  description: 필수, 공백만 입력 불가. 저장 전 앞뒤 공백 제거.
+            example:
+              content: 수정한 댓글 내용
+    delete:
+      summary: 댓글 삭제
+      description: "구현 예정.\n\n### Request\r\n\r\n`DELETE /api/comments/{commentId}`\r\n\r\n```http\r\nAuthorization: Bearer {accessToken}\r\n```\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| commentId | 필수, 존재하고 삭제되지 않은 댓글 ID |\r\n\r\n### Response\r\n\r\n응답 본문 없음.\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 삭제 성공 | 204 No Content |\r\n| 인증 실패 | 401 Unauthorized |\r\n| 작성자 불일치 | 403 Forbidden |\r\n| 댓글 없음 | 404 Not Found |\r\n\r\n### 비고\r\n\r\n- 댓글 DB row는 물리 삭제하지 않고 `Comment.deleted = true`로 변경한다.\r\n- 이미 삭제된 댓글은 존재하지 않는 댓글과 동일하게 처리한다.\r\n- 댓글 삭제 시 `updatedAt`을 갱신한다.\r\n- 댓글 삭제와 같은 트랜잭션에서 관련 `comment_likes` 행을 물리 삭제한다.\r\n\r\n---"
+      responses:
+        '204':
+          description: 삭제 성공
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 작성자 불일치
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 댓글 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          description: 존재하고 삭제되지 않은 대상 ID. 상세 규칙은 본문 참고.
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+  /api/comments/{commentId}/likes:
+    post:
+      summary: 댓글 좋아요 등록
+      description: "구현 예정.\n\n### Request\r\n\r\n`POST /api/comments/{commentId}/likes`\r\n\r\n```http\r\nAuthorization: Bearer {accessToken}\r\n```\r\n\r\n요청 본문 없음.\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| commentId | 필수, 존재하고 삭제되지 않은 댓글 ID |\r\n\r\n### Response\r\n\r\n```json\r\n{\r\n  \"commentId\": 1,\r\n  \"likeCount\": 4,\r\n  \"likedByMe\": true\r\n}\r\n```\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 등록 성공 | 201 Created |\r\n| 인증 실패 | 401 Unauthorized |\r\n| 중복 좋아요 요청 | 409 Conflict |\r\n| 사용자 없음 | 404 Not Found |\r\n| 댓글 없음 | 404 Not Found |\r\n\r\n### 비고\r\n\r\n- `(comment_id, user_id)` 유니크 제약으로 동시 중복 요청도 방지한다.\r\n- 등록 후 `comment_likes`를 집계한 좋아요 수를 반환한다.\r\n\r\n---"
+      responses:
+        '201':
+          description: 등록 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commentId:
+                    type: integer
+                  likeCount:
+                    type: integer
+                  likedByMe:
+                    type: boolean
+              example:
+                commentId: 1
+                likeCount: 4
+                likedByMe: true
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 사용자 없음; 댓글 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 중복 좋아요 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          description: 존재하고 삭제되지 않은 대상 ID. 상세 규칙은 본문 참고.
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+    delete:
+      summary: 댓글 좋아요 취소
+      description: "구현 예정.\n\n### Request\r\n\r\n`DELETE /api/comments/{commentId}/likes`\r\n\r\n```http\r\nAuthorization: Bearer {accessToken}\r\n```\r\n\r\n요청 본문 없음.\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| commentId | 필수, 존재하고 삭제되지 않은 댓글 ID |\r\n\r\n### Response\r\n\r\n```json\r\n{\r\n  \"commentId\": 1,\r\n  \"likeCount\": 3,\r\n  \"likedByMe\": false\r\n}\r\n```\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 취소 성공 | 200 OK |\r\n| 인증 실패 | 401 Unauthorized |\r\n| 좋아요 취소 대상 없음 | 404 Not Found |\r\n| 사용자 없음 | 404 Not Found |\r\n| 댓글 없음 | 404 Not Found |\r\n\r\n### 비고\r\n\r\n- 좋아요 취소 시 해당 `comment_likes` 행을 물리 삭제한다.\r\n- 취소 후 `comment_likes`를 집계한 좋아요 수를 반환한다."
+      responses:
+        '200':
+          description: 취소 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commentId:
+                    type: integer
+                  likeCount:
+                    type: integer
+                  likedByMe:
+                    type: boolean
+              example:
+                commentId: 1
+                likeCount: 3
+                likedByMe: false
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 좋아요 취소 대상 없음; 사용자 없음; 댓글 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          description: 존재하고 삭제되지 않은 대상 ID. 상세 규칙은 본문 참고.
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: refreshToken
+  parameters:
+    CsrfHeader:
+      name: X-XSRF-TOKEN
+      in: header
+      required: true
+      description: /api/auth/csrf에서 받은 token. CSRF 쿠키도 함께 전송한다.
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Validation 실패
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TokenResponse:
+      description: 성공. refreshToken HttpOnly 쿠키를 설정한다. 쿠키 경로는 /api/auth다.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              accessToken:
+                type: string
+              tokenType:
+                type: string
+              expiresIn:
+                type: integer
+          example:
+            accessToken: eyJ...
+            tokenType: Bearer
+            expiresIn: 900
+      headers:
+        Set-Cookie:
+          description: refreshToken HttpOnly 쿠키; 경로 /api/auth. 운영 시 Secure.
+          schema:
+            type: string
+  schemas:
+    Error:
+      type: object
+      properties:
+        status:
+          type: integer
+        message:
+          type: string
+      example:
+        status: 400
+        message: 에러 메시지

@@ -1,0 +1,89 @@
+// Entity 필드명은 원문을 따르며, 명시된 FK·인덱스 컬럼은 원문 컬럼명을 쓴다.
+// 물리 컬럼명과 SQL 타입이 명시되지 않은 항목은 이 문서만으로 확정하지 않는다.
+
+Table users {
+  id Long [pk, increment, note: '사용자 ID']
+  email String(255) [not null, unique, note: '이메일']
+  password String(255) [not null, note: '암호화된 비밀번호']
+  nickname String(50) [not null, unique, note: '닉네임']
+  role UserRole [not null, note: '사용자 권한']
+  createdAt LocalDateTime [not null, note: '생성일']
+  updatedAt LocalDateTime [not null, note: '수정일']
+}
+
+Table categories {
+  id Long [pk, increment, note: '카테고리 ID']
+  name String(50) [not null, unique, note: '카테고리명']
+  createdAt LocalDateTime [not null, note: '생성일']
+  updatedAt LocalDateTime [not null, note: '수정일']
+}
+
+Table posts {
+  id Long [pk, increment, note: '게시글 ID']
+  user_id Long [not null, note: '작성자; Entity 필드 user']
+  category_id Long [not null, note: '카테고리; Entity 필드 category']
+  title String(255) [not null, note: '게시글 제목']
+  content Text [not null, note: '게시글 내용']
+  newPost boolean [not null, note: '새 글 여부']
+  deleted boolean [not null, note: '삭제 여부']
+  likeCount int [not null, note: '좋아요 수']
+  createdAt LocalDateTime [not null, note: '생성일']
+  updatedAt LocalDateTime [not null, note: '수정일']
+}
+
+Table post_likes {
+  id Long [pk, increment, note: '게시글 좋아요 ID']
+  post_id Long [not null, note: '좋아요 대상 게시글; Entity 필드 post']
+  user_id Long [not null, note: '좋아요한 사용자; Entity 필드 user']
+  createdAt LocalDateTime [not null, note: '생성일']
+
+  indexes {
+    (post_id, user_id) [unique, note: '같은 사용자는 같은 게시글에 좋아요를 1개만 등록']
+  }
+}
+
+Table post_files {
+  id Long [pk, increment, note: '게시글 첨부파일 ID']
+  post_id Long [not null, note: '첨부파일이 속한 게시글; Entity 필드 post']
+  originalFileName String(255) [not null, note: '원본 파일명']
+  storedFileName String(255) [not null, note: '저장 파일명']
+  filePath String(500) [not null, note: '파일 저장 경로 또는 접근 경로']
+  contentType String(100) [not null, note: 'MIME 타입']
+  fileSize Long [not null, note: '파일 크기']
+  createdAt LocalDateTime [not null, note: '생성일']
+}
+
+Table comments {
+  id Long [pk, increment, note: '댓글 ID']
+  post_id Long [not null, note: '댓글 대상 게시글; Entity 필드 post']
+  user_id Long [not null, note: '댓글 작성자; Entity 필드 user']
+  content String(1000) [not null, note: '댓글 내용']
+  deleted boolean [not null, default: false, note: '논리 삭제 여부']
+  created_at LocalDateTime [not null, note: '생성일; Entity 필드 createdAt']
+  updatedAt LocalDateTime [not null, note: '수정일']
+
+  indexes {
+    (post_id, deleted, created_at, id) [note: '게시글별 미삭제 댓글의 최신순 조회와 동률 정렬 지원']
+  }
+}
+
+Table comment_likes {
+  id Long [pk, increment, note: '댓글 좋아요 ID']
+  comment_id Long [not null, note: '좋아요 대상 댓글; Entity 필드 comment']
+  user_id Long [not null, note: '좋아요한 사용자; Entity 필드 user']
+  createdAt LocalDateTime [not null, note: '생성일']
+
+  indexes {
+    (comment_id, user_id) [unique, note: '댓글별 좋아요 집계 및 사용자별 중복 좋아요 방지']
+  }
+}
+
+Ref: posts.user_id > users.id
+Ref: posts.category_id > categories.id
+Ref: post_likes.post_id > posts.id
+Ref: post_likes.user_id > users.id
+Ref: post_files.post_id > posts.id
+Ref: comments.post_id > posts.id
+Ref: comments.user_id > users.id
+Ref: comment_likes.comment_id > comments.id
+Ref: comment_likes.user_id > users.id
