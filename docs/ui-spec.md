@@ -11,8 +11,9 @@ Ask Teacher는 사용자가 질문을 작성하고 다른 사용자의 질문을
 ### 관련 공식 명세
 
 - [공통 요구사항](requirements.md)
-- [API 및 인증 명세](api-spec.md)
-- [ERD](erd.md)
+- [API 명세](openapi.yaml)
+- [인증 정책](auth-policy.md)
+- [ERD](schema.dbml)
 
 API 요청·응답 구조, 데이터 검증 및 인증·인가 규칙은 각 공식 명세를 따른다.
 

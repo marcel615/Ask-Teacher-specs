@@ -81,20 +81,19 @@ services:
     contracts:
       api:
         repository_role: common
-        path: docs/api-spec.md
-        format: markdown
-        reference_commit: 79fadfa8c687681186f0c0e1ef0e6e5e1dded33c
+        path: docs/openapi.yaml
+        format: openapi
+        reference_commit: d4d94cf4d965bca941ac2b5a27963dc789574b64
       authentication:
         repository_role: common
-        path: docs/api-spec.md
-        section: 인증
+        path: docs/auth-policy.md
         format: markdown
-        reference_commit: 79fadfa8c687681186f0c0e1ef0e6e5e1dded33c
+        reference_commit: d4d94cf4d965bca941ac2b5a27963dc789574b64
       erd:
         repository_role: common
-        path: docs/erd.md
-        format: markdown
-        reference_commit: 79fadfa8c687681186f0c0e1ef0e6e5e1dded33c
+        path: docs/schema.dbml
+        format: dbml
+        reference_commit: d4d94cf4d965bca941ac2b5a27963dc789574b64
       ui:
         repository_role: common
         path: docs/ui-spec.md
