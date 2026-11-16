@@ -112,16 +112,18 @@ paths:
   /api/auth/csrf:
     get:
       summary: CSRF 토큰 발급
-      description: 응답 token과 HttpOnly CSRF 쿠키를 발급한다. 원본에 성공 상태 코드 및 추가 응답 필드는 명시되지 않았다.
+      description: 응답 token과 headerName 및 HttpOnly CSRF 쿠키를 발급한다.
       responses:
-        default:
-          description: 원본에 상태 코드가 명시되지 않음
+        '200':
+          description: CSRF 토큰 발급 성공
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   token:
+                    type: string
+                  headerName:
                     type: string
           headers:
             Set-Cookie:
@@ -132,8 +134,7 @@ paths:
     post:
       summary: 토큰 재발급
       description: >-
-        본문 없이 Refresh 쿠키와 CSRF 쿠키 및 헤더를 보낸다. 성공 시 로그인과 같은 JSON과 회전된 쿠키를 반환한다. 성공 상태 코드는 원본에 명시되지
-        않았다.
+        본문 없이 Refresh 쿠키와 CSRF 쿠키 및 헤더를 보낸다. 성공 시 로그인과 같은 JSON과 회전된 쿠키를 반환한다.
       parameters:
         - $ref: '#/components/parameters/CsrfHeader'
       security:
@@ -157,7 +158,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        default:
+        '200':
           $ref: '#/components/responses/TokenResponse'
   /api/auth/logout:
     post:
