@@ -1,6 +1,6 @@
 # 인증·세션 정책
 
-이 문서는 `api-spec.md`의 인증 관련 내용을 분리한 제안이다. 공식 원본 전환 전까지 기존 `api-spec.md`가 기준이다. API 경로와 요청·응답은 `openapi.yaml`을 참고한다.
+이 문서는 공식 인증·세션 정책이다. API 경로와 요청·응답은 `openapi.yaml`을 참고한다.
 
 ## Access Token과 세션
 
