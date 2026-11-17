@@ -30,7 +30,7 @@ services:
     confluence:
       enabled: true
       site_url: https://marcel615.atlassian.net/wiki
-      space_key: A
+      space_key: ASK
       parent_page_id: '753692' # 기능 기획, 논의
 
     jira:
