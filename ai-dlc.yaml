@@ -23,6 +23,30 @@ services:
         default_branch: develop
         connection_status: verified
 
+    work_tracking:
+      provider: jira
+
+    jira:
+      site_url: https://marcel615.atlassian.net
+      project_key: ASK
+      issue_types:
+        candidate: 작업
+        implementation: 작업
+        epic: 에픽
+        contract: 작업
+      statuses:
+        candidate: 아이디어 후보
+        backlog: 할 일
+        ready: 착수 가능
+        in_progress: 진행 중
+        in_review: 검토 중
+        done: 완료
+      role_labels:
+        backend: 'area:backend'
+        frontend: 'area:frontend'
+      approval: user_transition_to_backlog
+      priority_order: [Highest, High, Medium, Low, Lowest]
+
     backlog:
       draft_skill: feature-discovery
       refinement_skill: cross-project-backlog-refinement
@@ -107,5 +131,5 @@ services:
 # reference_commit은 해당 원본 저장소에서 확인한 조사 기준이며 버전 고정이 아니다.
 # 실행 시 현재 브랜치 SHA를 확인하고 원본 URL·SHA를 기록한다. Backend 사본으로 대체하지 않는다.
 # 저장소의 default_branch 값은 파일·커밋 존재나 초기화 완료를 보장하지 않는다.
-# 필드 이름·ID·선택지와 필요한 라벨은 사용 전 실제 GitHub 값과 대조한다.
+# 선택한 작업 추적 도구의 필드·유형·상태·권한과 필요한 라벨은 사용 전 실제 값과 대조한다.
 # 토큰·인증 정보는 기록하지 않는다.
