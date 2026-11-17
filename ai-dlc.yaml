@@ -26,6 +26,13 @@ services:
     work_tracking:
       provider: jira
 
+    # Jira 백로그 정제 시 선택적으로 사용할 기능 기획 문서 위치
+    confluence:
+      enabled: true
+      site_url: https://marcel615.atlassian.net/wiki
+      space_key: ASK
+      parent_page_id: '753692' # 기능 기획, 논의
+
     jira:
       site_url: https://marcel615.atlassian.net
       project_key: ASK
