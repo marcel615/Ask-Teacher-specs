@@ -32,6 +32,7 @@ services:
       site_url: https://marcel615.atlassian.net/wiki
       space_key: ASK
       parent_page_id: '753692' # 기능 기획, 논의
+      contract_parent_page_id: '983042' # 공통 계약 변경
 
     jira:
       site_url: https://marcel615.atlassian.net
