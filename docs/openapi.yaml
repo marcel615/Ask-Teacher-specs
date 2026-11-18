@@ -398,14 +398,27 @@ paths:
   /api/posts/{postId}:
     get:
       summary: 게시글 상세 조회
-      description: "구현됨.\n\n### Request\r\n\r\n`GET /api/posts/{postId}`\r\n\r\n### Validation\r\n\r\n| 필드 | 규칙 |\r\n|---|---|\r\n| postId | 필수, 존재하는 게시글 ID |\r\n\r\n### Response\r\n\r\n```json\r\n{\r\n  \"postId\": 1,\r\n  \"userName\": \"springUser\",\r\n  \"categoryName\": \"Spring\",\r\n  \"title\": \"Spring Bean은 무엇인가요?\",\r\n  \"content\": \"Spring Bean 개념이 궁금합니다.\",\r\n  \"likeCount\": 3,\r\n  \"likedByMe\": true,\r\n  \"createdAt\": \"2026-05-12T19:30:00\",\r\n  \"files\": [\r\n    {\r\n      \"storedFileName\": \"uuid-image.png\",\r\n      \"contentType\": \"image/png\",\r\n      \"fileUrl\": \"/files/uuid-image.png\"\r\n    }\r\n  ]\r\n}\r\n```\r\n\r\n### Status Code\r\n\r\n| 상황 | Status |\r\n|---|---|\r\n| 조회 성공 | 200 OK |\r\n| 게시글 없음 | 404 Not Found |\r\n\r\n---"
+      description: |-
+        인증 없이 게시글을 조회할 수 있다. 유효한 Bearer 토큰을 보내면 현재 사용자 기준 값을 반환한다.
+        성공 응답의 필수 불리언 isAuthor는 유효하게 인증된 작성자만 true이며, 비작성자와 비로그인은 false다.
+        isAuthor는 화면 표시 정보이며 수정·삭제 요청의 서버 인가를 대체하지 않는다.
+        만료·유효하지 않은 Bearer 토큰은 401, 인증 서비스 장애는 503을 반환한다.
+        응답의 Cache-Control에는 no-store를 포함한다.
       responses:
         '200':
           description: 조회 성공
+          headers:
+            Cache-Control:
+              description: no-store를 포함해야 한다. 다른 캐시 지시어를 함께 사용할 수 있다.
+              schema:
+                type: string
+              example: no-cache, no-store, max-age=0, must-revalidate
           content:
             application/json:
               schema:
                 type: object
+                required:
+                  - isAuthor
                 properties:
                   postId:
                     type: integer
@@ -421,6 +434,9 @@ paths:
                     type: integer
                   likedByMe:
                     type: boolean
+                  isAuthor:
+                    type: boolean
+                    description: 현재 조회자가 유효하게 인증된 게시글 작성자인 경우에만 true. 비로그인 및 비작성자는 false.
                   createdAt:
                     type: string
                   files:
@@ -442,17 +458,33 @@ paths:
                 content: Spring Bean 개념이 궁금합니다.
                 likeCount: 3
                 likedByMe: true
+                isAuthor: true
                 createdAt: '2026-05-12T19:30:00'
                 files:
                   - storedFileName: uuid-image.png
                     contentType: image/png
                     fileUrl: /files/uuid-image.png
+        '401':
+          description: 만료되거나 유효하지 않은 Bearer 토큰
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 인증 서비스 장애
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: 게시글 없음
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - name: postId
           in: path
