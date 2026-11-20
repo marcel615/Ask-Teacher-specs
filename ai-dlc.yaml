@@ -50,6 +50,7 @@ services:
         in_review: 검토 중
         done: 완료
       role_labels:
+        specs: 'area:specs'
         backend: 'area:backend'
         frontend: 'area:frontend'
       approval: user_transition_to_backlog
